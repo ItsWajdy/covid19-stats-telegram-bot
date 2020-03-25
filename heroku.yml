@@ -1,0 +1,7 @@
+build:
+  docker:
+    bot: Dockerfile
+release:
+  image: bot
+  command:
+    - python /app/bot.py
