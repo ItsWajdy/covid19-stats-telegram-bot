@@ -6,6 +6,7 @@ from telegram.ext import CommandHandler
 
 from .data import fetch
 from .reply_messages import __start_message
+from .reply_messages import __help_message
 
 
 # Enable logging
@@ -20,6 +21,13 @@ def start(update, context):
     '''
     fetch()
     update.message.reply_markdown(__start_message)
+
+def help(update, context):
+    '''
+    Respong when the command /help is issued
+    '''
+    fetch()
+    update.message.reply_markdown(__help_message)
 
 def error(update, context):
     '''
@@ -40,6 +48,7 @@ def main():
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler('start', start))
+    dp.add_handler(CommandHandler('help', help))
     dp.add_error_handler(error)
 
     # Start the bot
