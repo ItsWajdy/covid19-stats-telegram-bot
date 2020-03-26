@@ -1,4 +1,4 @@
-__start_message = '''*What can this bot do?*
+start_message = '''*What can this bot do?*
 
 ~APP_NAME~ is a great source of old and new stats and graphs relating to the Covid19 pandemic.
 All information provided by ~APP_NAME~ is sourced from [https://worldometer/coronavirus/](https://worldometer/coronavirus/).
@@ -7,7 +7,7 @@ For a list of avaliable commands and features, issue the commane /help.
 
 For more information about this bot, visit the [GitHub](https://github.com/ItsWajdy/covid19-stats-telegram-bot) repository.'''
 
-__help_message = '''~APP_NAME~ can help you get information about the Covid19 pandemic regarding the following:
+help_message = '''~APP_NAME~ can help you get information about the Covid19 pandemic regarding the following:
 - Total cases
 - New cases
 - Total deaths
@@ -22,3 +22,13 @@ Send a _*regular*_ message starting with the insight name (as mentioned above), 
 
 A sample message might look like:
 new cases china today'''
+
+error_parsing_message = '''*Message not understood*
+
+Check your spelling or type /help for a list of possible commands and message.'''
+
+error_message = '''*Error! Could not get wanted information*
+
+*Please report this error*'''
+
+today_response_message = '''There were *{}* *{}* so far today {}'''

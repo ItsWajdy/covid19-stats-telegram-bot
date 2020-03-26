@@ -11,7 +11,24 @@ from bs4 import BeautifulSoup
 
 
 __DATA_PATH = 'data/'
-__DATA_URL = 'https://www.worldometers.info/coronavirus/'
+__LOG_PATH  = __DATA_PATH + 'log.csv'
+__DATA_URL  = 'https://www.worldometers.info/coronavirus/'
+
+def fetch_data_for_today():
+    '''
+    Get today's data and return it in a DataFrame
+
+    Returns:
+        - df: Today's data so far as a DataFrame
+    '''
+
+    page = requests.get(__DATA_URL)
+    soup = BeautifulSoup(page.content, 'html.parser')
+    tbl = soup.find('table', {'id': 'main_table_countries_today'})
+
+    df = pd.read_html(str(tbl))[0]
+    df = df.rename(columns={'Country,Other': 'Country'}).fillna(0)
+    return df
 
 def __list_dates_in_data():
     '''
@@ -20,6 +37,7 @@ def __list_dates_in_data():
     Returns:
         - List of dates as strings
     '''
+    # TODO change this to use logs.csv as reference
     ret = []
     for f in os.listdir(__DATA_PATH):
         if isfile(join(__DATA_PATH, f)) and f.startswith('Covid19_'):
@@ -35,13 +53,14 @@ def __fetch_yesterday_data():
     Returns:
         - None
     '''
-    page = requests.get(url)
+    page = requests.get(__DATA_URL)
     soup = BeautifulSoup(page.content, 'html.parser')
     tbl = soup.find('table', {'id': 'main_table_countries_yesterday'})
 
     df = pd.read_html(str(tbl))[0]
     df = df.rename(columns={'Country,Other': 'Country'}).fillna(0)
     df.to_csv('Covid19_' + str(datetime.today().date() - timedelta(days=1)) + '.csv', index=False)
+    # TODO this must also log success to log.csv
 
 def fetch():
     '''
@@ -58,3 +77,29 @@ def fetch():
         return
     
     __fetch_yesterday_data()
+
+def get_last_date():
+    '''
+    Get the last date for which the app has data as a string.
+
+    Returns:
+        - last_date: The last datetime present in the app's data as a string.
+    '''
+
+    log = pd.read_csv(__LOG_PATH)
+    last_date = np.sort(log.date.values)[-1]
+    return last_date
+
+def get_data_for_date(date):
+    '''
+    Get the DataFrame corresponding to passed date
+
+    Parameters:
+        - date: Date to get data for as a string
+    
+    Returns:
+        - data: DataFrame corresponding to date if it exists
+    '''
+
+    assert os.path.isfile(__DATA_PATH + 'Covid19_' + date), ValueError('Data for {} not found'.format(date))
+    return pd.read_csv(__DATA_PATH + 'Covid19_' + date)
