@@ -35,15 +35,10 @@ def __list_dates_in_data():
     Get a list all dates that the bot has Covid19 data for
 
     Returns:
-        - List of dates as strings
+        - Numpy array of dates as strings
     '''
-    # TODO change this to use logs.csv as reference
-    ret = []
-    for f in os.listdir(__DATA_PATH):
-        if isfile(join(__DATA_PATH, f)) and f.startswith('Covid19_'):
-            date = f[f.find('_')+1:]
-            ret.append(date)
-    return date
+    log = pd.read_csv(__LOG_PATH)
+    return log.date.values
 
 def __fetch_yesterday_data():
     '''
@@ -59,8 +54,13 @@ def __fetch_yesterday_data():
 
     df = pd.read_html(str(tbl))[0]
     df = df.rename(columns={'Country,Other': 'Country'}).fillna(0)
-    df.to_csv('Covid19_' + str(datetime.today().date() - timedelta(days=1)) + '.csv', index=False)
-    # TODO this must also log success to log.csv
+
+    yesterday_date = datetime.today().date() - timedelta(days=1)
+    df.to_csv('Covid19_' + str(yesterday_date) + '.csv', index=False)
+    
+    log = pd.read_csv(__LOG_PATH)
+    log = log.append({'date': str(yesterday_date), 'state': 1}, ignore_index=True)
+    log.to_csv(__LOG_PATH)
 
 def fetch():
     '''
