@@ -6,6 +6,7 @@ from datetime import datetime
 from datetime import timedelta
 
 import pandas as pd
+import numpy as np
 import requests
 from bs4 import BeautifulSoup
 
@@ -101,5 +102,5 @@ def get_data_for_date(date):
         - data: DataFrame corresponding to date if it exists
     '''
 
-    assert os.path.isfile(__DATA_PATH + 'Covid19_' + date), ValueError('Data for {} not found'.format(date))
-    return pd.read_csv(__DATA_PATH + 'Covid19_' + date)
+    assert os.path.isfile(__DATA_PATH + 'Covid19_' + date + '.csv'), ValueError('Data for {} not found'.format(date))
+    return pd.read_csv(__DATA_PATH + 'Covid19_' + date + '.csv')

@@ -1,4 +1,4 @@
-import pandas as np
+import pandas as pd
 import numpy as np
 
 import data
@@ -30,7 +30,7 @@ def __validate(insight, space, time):
     last_data = data.get_data_for_date(last_date)
 
     countries_list = last_data.Country.values
-    assert space == 'worldwide' or space in countries_list, ValueError('Space error')
+    assert space == 'worldwide' or space.title() in countries_list, ValueError('Space error')
 
 def get_results(insight, space, time):
     '''
@@ -49,19 +49,20 @@ def get_results(insight, space, time):
         __validate(insight, space, time)
     except ValueError:
         raise ValueError('Requested data not understood')
-    
-    # Capitilize first letter in each word to match column name in DataFrame
-    insight = insight.title()
+
+    # Capitilize first letter in each word to match column name in DataFrame    
+    insight = insight.title().replace(' ', '')
+    space = space.title()
 
     if time == 'today':
         df = data.fetch_data_for_today()
-        if space == 'worldwide':
+        if space == 'Worldwide':
             success = 1
-            result = df[insigh].sum()
+            result = df[df['Country'] == 'Total:'][insight].values[0]
         else:
             if space in df.Country.values:
                 success = 1
-                result = df[df['Country'] == space][insight]
+                result = df[df['Country'] == space][insight].values[0]
             else:
                 success = 0
                 result = -1
