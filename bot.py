@@ -6,11 +6,11 @@ from telegram.ext import CommandHandler
 from telegram.ext import MessageHandler
 from telegram.ext import Filters
 
-from .data import fetch
-from .reply_messages import start_message
-from .reply_messages import help_message
-from .reply_messages import error_parsing_message
-from .backend import get_results
+from data import fetch
+from reply_messages import start_message
+from reply_messages import help_message
+from reply_messages import error_parsing_message
+from backend import get_results
 
 
 # Enable logging
