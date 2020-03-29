@@ -57,7 +57,7 @@ def __fetch_yesterday_data():
     df = df.rename(columns={'Country,Other': 'Country'}).fillna(0)
 
     yesterday_date = datetime.today().date() - timedelta(days=1)
-    df.to_csv('Covid19_' + str(yesterday_date) + '.csv', index=False)
+    df.to_csv(__DATA_PATH + 'Covid19_' + str(yesterday_date) + '.csv', index=False)
     
     log = pd.read_csv(__LOG_PATH)
     log = log.append({'date': str(yesterday_date), 'state': 1}, ignore_index=True)
