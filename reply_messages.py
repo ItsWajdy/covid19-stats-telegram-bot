@@ -32,3 +32,5 @@ error_message = '''*Error! Could not get wanted information*
 *Please report this error*'''
 
 today_response_message = '''There were *{}* *{}* so far today {}'''
+
+standby_message = '''Getting data...'''

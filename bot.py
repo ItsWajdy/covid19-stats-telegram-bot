@@ -12,7 +12,9 @@ from reply_messages import help_message
 from reply_messages import error_parsing_message
 from reply_messages import error_message
 from reply_messages import today_response_message
-from backend import get_results
+from reply_messages import standby_message
+from backend import get_results_today
+from backend import get_results_graph
 
 
 # Enable logging
@@ -73,8 +75,12 @@ def get_insight(update, context):
         update.message.reply_markdown(error_parsing_message)
         return
     
+    update.message.reply_markdown(standby_message)
     try:
-        success, result = get_results(insight, space, time)
+        if time == 'today':
+            success, result = get_results_today(insight, space, time)
+        else:
+            success, result = get_results_graph(insight, space, time, update.update_id)
     except ValueError:
         update.message.reply_markdown(error_parsing_message)
         return
@@ -88,7 +94,7 @@ def get_insight(update, context):
             space = 'in ' + space
         update.message.reply_markdown(today_response_message.format(result, insight, space))
     else:
-        pass
+        update.message.reply_photo(photo=open(result, 'rb'))
 
 def error(update, context):
     '''

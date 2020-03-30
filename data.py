@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 __DATA_PATH = 'data/'
 __LOG_PATH  = __DATA_PATH + 'log.csv'
 __DATA_URL  = 'https://www.worldometers.info/coronavirus/'
+GRAPH_PATH = __DATA_PATH + 'TEMP_GRAPH_{}_{}.jpg'
 
 def fetch_data_for_today():
     '''
@@ -104,3 +105,21 @@ def get_data_for_date(date):
 
     assert os.path.isfile(__DATA_PATH + 'Covid19_' + date + '.csv'), ValueError('Data for {} not found'.format(date))
     return pd.read_csv(__DATA_PATH + 'Covid19_' + date + '.csv')
+
+def get_all_past_data():
+    '''
+    Get all the data present for past days as one DataFrame.
+
+    Returns:
+        - df: A DataFrame containing all past data with an aditional column for date.
+    '''
+
+    dates = np.sort(__list_dates_in_data())
+    dataframes = []
+    for date in dates:
+        df = pd.read_csv(__DATA_PATH + 'Covid19_' + date + '.csv')
+        df['Date'] = [date for i in range(df.shape[0])]
+        dataframes.append(df)
+    
+    df = pd.concat(dataframes)
+    return df

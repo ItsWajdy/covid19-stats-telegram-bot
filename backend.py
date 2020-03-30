@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import plotly.express as ex
+from plotly.offline import plot
 
 import data
 
@@ -32,18 +34,18 @@ def __validate(insight, space, time):
     countries_list = last_data.Country.values
     assert space == 'worldwide' or space.title() in countries_list, ValueError('Space error')
 
-def get_results(insight, space, time):
+def __parse(insight, space, time):
     '''
-    Process the command (or queried insight) and return results as needed.
+    Validate passed arguments and transform them to the correct formatting.
 
     Parameters:
-        - insight: Type of insight needed. One of 'total cases', 'new cases', 'total deaths', 'new deaths', 'total recovered', or 'active cases'.
-        - space: What country to get data from. Can be the name of any country or 'wordlwide' for sum.
-        - time: One of 'today', which would get data relating to execution date, or 'graph', which would draw the wanted insight as a function of time.
-
+        - insight
+        - space
+        - time
     Returns:
-        - success: 1 if successful and 0 otherwise.
-        - result: the number wanted in case 'today' was passed, and the path to the generated image in case 'graph' was passed. 
+        - insight: After capitalizing the first letter of every word and removing spaces.
+        - space: After capitalizing the first letter of every word.
+        - time: As is
     '''
     try:
         __validate(insight, space, time)
@@ -53,6 +55,24 @@ def get_results(insight, space, time):
     # Capitilize first letter in each word to match column name in DataFrame    
     insight = insight.title().replace(' ', '')
     space = space.title()
+
+    return insight, space, time
+
+def get_results_today(insight, space, time):
+    '''
+    Process the command (or queried insight) and return results for today.
+
+    Parameters:
+        - insight: Type of insight needed. One of 'total cases', 'new cases', 'total deaths', 'new deaths', 'total recovered', or 'active cases'.
+        - space: What country to get data from. Can be the name of any country or 'wordlwide' for sum.
+        - time: Must be 'today', otherwise method fails.
+    
+    Returns:
+        - success: 1 if successful and 0 otherwise.
+        - result: The number wanted in case 'today' was passed.
+    '''
+
+    insight, space, time = __parse(insight, space, time)
 
     if time == 'today':
         df = data.fetch_data_for_today()
@@ -66,6 +86,43 @@ def get_results(insight, space, time):
             else:
                 success = 0
                 result = -1
+    else:
+        success = 0
+        result = -1
+    
+    return success, result
+
+def get_results_graph(insight, space, time, update_id):
+    '''
+    Process the command (or queried insight) and return results as a graph for past days.
+
+    Parameters:
+        - insight: Type of insight needed. One of 'total cases', 'new cases', 'total deaths', 'new deaths', 'total recovered', or 'active cases'.
+        - space: What country to get data from. Can be the name of any country or 'wordlwide' for sum.
+        - time: Must be 'graph', otherwise method fails.
+        - update_id: Unique message identifier to differntiate between graph requests when writing images.
+    
+    Returns:
+        - success: 1 if successful and 0 otherwise.
+        - result: The path for the generated image conatining the requested graph.
+    '''
+
+    insight, space, time = __parse(insight, space, time)
+
+    if time == 'graph':
+        all_data = data.get_all_past_data()
+        if space == 'Worldwide':
+            df = all_data[all_data['Country'] == 'Total:']
+        else:
+            df = all_data[all_data['Country'] == space]
+        # TODO add today's data to DataFrame
+        
+        path = data.GRAPH_PATH.format(insight + '_' + space, update_id)
+        my_plot = ex.line(df, x='Date', y=insight, title=insight + ' ' + space)
+        my_plot.write_image(path)
+
+        success = 1
+        result = path
     else:
         success = 0
         result = -1
