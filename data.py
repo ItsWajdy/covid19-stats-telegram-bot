@@ -12,11 +12,12 @@ from bs4 import BeautifulSoup
 
 
 __DATA_PATH = 'data/'
+__DATA_FILE = __DATA_PATH + 'data.csv'
 __LOG_PATH  = __DATA_PATH + 'log.csv'
-__DATA_URL  = 'https://www.worldometers.info/coronavirus/'
+__DATA_URL  = 'https://opendata.ecdc.europa.eu/covid19/casedistribution/csv'
 GRAPH_PATH = __DATA_PATH + 'TEMP_GRAPH_{}_{}.jpg'
 
-def fetch_data_for_today():
+def fetch_worldometer_data_for_today():
     '''
     Get today's data and return it in a DataFrame
 
@@ -42,26 +43,53 @@ def __list_dates_in_data():
     log = pd.read_csv(__LOG_PATH)
     return log.date.values
 
-def __fetch_yesterday_data():
+def __fetch_data():
     '''
-    Fetch Covid19 data for the previous day from https:www.worldometer.com/coronavirus/
+    Fetch Covid19 data for today from https://opendata.ecdc.europa.eu/covid19/casedistribution/csv
     and write results to a CSV
 
     Returns:
         - None
     '''
-    page = requests.get(__DATA_URL)
-    soup = BeautifulSoup(page.content, 'html.parser')
-    tbl = soup.find('table', {'id': 'main_table_countries_yesterday'})
+    request = requests.get(__DATA_URL)
+    with open(__DATA_FILE, 'wb') as f:
+        f.write(request.content)
 
-    df = pd.read_html(str(tbl))[0]
-    df = df.rename(columns={'Country,Other': 'Country'}).fillna(0)
+    df = pd.read_csv(__DATA_FILE)
 
-    yesterday_date = datetime.today().date() - timedelta(days=1)
-    df.to_csv(__DATA_PATH + 'Covid19_' + str(yesterday_date) + '.csv', index=False)
-    
+    # Transform
+    df = df.rename(columns={
+                            'dateRep': 'Date',
+                            'day': 'Day',
+                            'month': 'Month',
+                            'year': 'Year',
+                            'cases': 'NewCases',
+                            'deaths': 'NewDeaths',
+                            'countriesAndTerritories': 'Country',
+                            'geoId': 'Geo_ID',
+                            'popData2018': 'Population_2018'
+                            })
+    df['Total_Cases'] = [0 for i in range(df.shape[0])]
+    df['Total_Deaths'] = [0 for i in range(df.shape[0])]
+
+    def agg_total_cases_and_deaths(param_df):
+        cases_agg = 0
+        death_agg = 0
+        param_df = param_df.sort_values(['year', 'month', 'day'])
+        param_df = param_df.reset_index(drop=True)
+        for i in param_df.index:
+            cases_agg += param_df.iloc[i]['cases']
+            death_agg += param_df.iloc[i]['deaths']
+            param_df.at[i, 'totalCases'] = cases_agg
+            param_df.at[i, 'totalDeaths'] = death_agg
+        return param_df
+
+    df = df.groupby(['Country']).apply(agg_total_cases_and_deaths).reset_index(drop=True)
+
+    # Log
+    date = datetime.today().date()
     log = pd.read_csv(__LOG_PATH)
-    log = log.append({'date': str(yesterday_date), 'state': 1}, ignore_index=True)
+    log = log.append({'date': str(date), 'state': 1}, ignore_index=True)
     log.to_csv(__LOG_PATH)
 
 def fetch():
@@ -72,54 +100,21 @@ def fetch():
     Returns:
         - None
     '''
-    date_to_fetch = datetime.today().date() - timedelta(days=1)
+    date_to_fetch = datetime.today().date()
     already_fetched_dates = __list_dates_in_data()
 
     if date_to_fetch in already_fetched_dates:
         return
     
-    __fetch_yesterday_data()
+    __fetch_data()
 
-def get_last_date():
+def get_data():
     '''
-    Get the last date for which the app has data as a string.
+    Read the Covid19 data.
 
     Returns:
-        - last_date: The last datetime present in the app's data as a string.
+        - df: DataFrame.
     '''
 
-    log = pd.read_csv(__LOG_PATH)
-    last_date = np.sort(log.date.values)[-1]
-    return last_date
-
-def get_data_for_date(date):
-    '''
-    Get the DataFrame corresponding to passed date
-
-    Parameters:
-        - date: Date to get data for as a string
-    
-    Returns:
-        - data: DataFrame corresponding to date if it exists
-    '''
-
-    assert os.path.isfile(__DATA_PATH + 'Covid19_' + date + '.csv'), ValueError('Data for {} not found'.format(date))
-    return pd.read_csv(__DATA_PATH + 'Covid19_' + date + '.csv')
-
-def get_all_past_data():
-    '''
-    Get all the data present for past days as one DataFrame.
-
-    Returns:
-        - df: A DataFrame containing all past data with an aditional column for date.
-    '''
-
-    dates = np.sort(__list_dates_in_data())
-    dataframes = []
-    for date in dates:
-        df = pd.read_csv(__DATA_PATH + 'Covid19_' + date + '.csv')
-        df['Date'] = [date for i in range(df.shape[0])]
-        dataframes.append(df)
-    
-    df = pd.concat(dataframes)
+    df = pd.read_csv(__DATA_FILE)
     return df
