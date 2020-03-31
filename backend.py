@@ -9,8 +9,6 @@ __ACTION_TOTAL_CASES     = 'total cases'
 __ACTION_NEW_CASES       = 'new cases'
 __ACTION_TOTAL_DEATHS    = 'total deaths'
 __ACTION_NEW_DEATHS      = 'new deaths'
-__ACTION_TOTAL_RECOVERED = 'total recovered'
-__ACTION_ACTIVE_CASES    = 'active cases'
 
 __TIME_TODAY = 'today'
 __TIME_ALL   = 'graph'
@@ -22,17 +20,18 @@ def __validate(insight, space, time):
     assert insight == __ACTION_TOTAL_CASES or \
             insight == __ACTION_NEW_CASES or \
             insight == __ACTION_TOTAL_DEATHS or \
-            insight == __ACTION_NEW_DEATHS or \
-            insight == __ACTION_TOTAL_RECOVERED or \
-            insight == __ACTION_ACTIVE_CASES, ValueError('Insight name error')
+            insight == __ACTION_NEW_DEATHS, ValueError('Insight name error')
     
     assert time == __TIME_TODAY or time == __TIME_ALL, ValueError('Time error')
 
-    last_date = data.get_last_date()
-    last_data = data.get_data_for_date(last_date)
+    df = data.get_data()
+    geo_id_list = df.Geo_ID.values
 
-    countries_list = last_data.Country.values
-    assert space == 'worldwide' or space.title() in countries_list, ValueError('Space error')
+    if time == __TIME_TODAY:
+        df = data.fetch_worldometer_data_for_today()
+    countries_list = df.Country.values
+    
+    assert space == 'worldwide' or space.title() in countries_list or space.upper() in geo_id_list, ValueError('Space error')
 
 def __parse(insight, space, time):
     '''
@@ -54,9 +53,10 @@ def __parse(insight, space, time):
 
     # Capitilize first letter in each word to match column name in DataFrame    
     insight = insight.title().replace(' ', '')
-    space = space.title()
+    country = space.title()
+    geo_id = space.upper()
 
-    return insight, space, time
+    return insight, country, geo_id, time
 
 def get_results_today(insight, space, time):
     '''
@@ -72,17 +72,17 @@ def get_results_today(insight, space, time):
         - result: The number wanted in case 'today' was passed.
     '''
 
-    insight, space, time = __parse(insight, space, time)
+    insight, country, geo_id, time = __parse(insight, space, time)
 
     if time == 'today':
-        df = data.fetch_data_for_today()
-        if space == 'Worldwide':
+        df = data.fetch_worldometer_data_for_today()
+        if country == 'Worldwide':
             success = 1
             result = df[df['Country'] == 'Total:'][insight].values[0]
         else:
-            if space in df.Country.values:
+            if country in df.Country.values:
                 success = 1
-                result = df[df['Country'] == space][insight].values[0]
+                result = df[df['Country'] == country][insight].values[0]
             else:
                 success = 0
                 result = -1
@@ -107,18 +107,33 @@ def get_results_graph(insight, space, time, update_id):
         - result: The path for the generated image conatining the requested graph.
     '''
 
-    insight, space, time = __parse(insight, space, time)
+    insight, country, geo_id, time = __parse(insight, space, time)
 
     if time == 'graph':
-        all_data = data.get_all_past_data()
-        if space == 'Worldwide':
-            df = all_data[all_data['Country'] == 'Total:']
+        all_data = data.get_data()
+        if country == 'Worldwide':
+            def aggregate(param_df):
+                '''
+                Sum all insights but keep Date as a column to be used in plotting.
+                '''
+                date = param_df['Date'].values[0]
+                return pd.DataFrame.from_dict({'Date': [date],
+                                                'NewCases': param_df.NewCases.sum(),
+                                                'NewDeaths': param_df.NewDeaths.sum(),
+                                                'TotalCases': param_df.TotalCases.sum(),
+                                                'TotalDeaths': param_df.TotalDeaths.sum()
+                                                })
+            
+            df = all_data.groupby(['Year', 'Month', 'Day']).apply(aggregate).reset_index()
         else:
-            df = all_data[all_data['Country'] == space]
-        # TODO add today's data to DataFrame
+            if country in all_data.Country.values:
+                df = all_data[all_data['Country'] == country]
+            elif geo_id in all_data.Geo_ID.values:
+                df = all_data[all_data['Geo_ID'] == geo_id]
         
-        path = data.GRAPH_PATH.format(insight + '_' + space, update_id)
-        my_plot = ex.line(df, x='Date', y=insight, title=insight + ' ' + space)
+        df = df.sort_values(['Year', 'Month', 'Day'])
+        path = data.GRAPH_PATH.format(insight + '_' + country, update_id)
+        my_plot = ex.line(df, x='Date', y=insight, title=insight + ' ' + country)
         my_plot.write_image(path)
 
         success = 1
