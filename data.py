@@ -14,7 +14,8 @@ from bs4 import BeautifulSoup
 __DATA_PATH = 'data/'
 __DATA_FILE = __DATA_PATH + 'data.csv'
 __LOG_PATH  = __DATA_PATH + 'log.csv'
-__DATA_URL  = 'https://opendata.ecdc.europa.eu/covid19/casedistribution/csv'
+__ECDC_URL  = 'https://opendata.ecdc.europa.eu/covid19/casedistribution/csv'
+__WORLDOMETER_URL = 'https://www.worldometers.info/coronavirus/'
 GRAPH_PATH = __DATA_PATH + 'TEMP_GRAPH_{}_{}.jpg'
 
 def fetch_worldometer_data_for_today():
@@ -25,7 +26,7 @@ def fetch_worldometer_data_for_today():
         - df: Today's data so far as a DataFrame
     '''
 
-    page = requests.get(__DATA_URL)
+    page = requests.get(__WORLDOMETER_URL)
     soup = BeautifulSoup(page.content, 'html.parser')
     tbl = soup.find('table', {'id': 'main_table_countries_today'})
 
@@ -51,7 +52,7 @@ def __fetch_data():
     Returns:
         - None
     '''
-    request = requests.get(__DATA_URL)
+    request = requests.get(__ECDC_URL)
     with open(__DATA_FILE, 'wb') as f:
         f.write(request.content)
 
@@ -69,22 +70,23 @@ def __fetch_data():
                             'geoId': 'Geo_ID',
                             'popData2018': 'Population_2018'
                             })
-    df['Total_Cases'] = [0 for i in range(df.shape[0])]
-    df['Total_Deaths'] = [0 for i in range(df.shape[0])]
+    df['TotalCases'] = [0 for i in range(df.shape[0])]
+    df['TotalDeaths'] = [0 for i in range(df.shape[0])]
 
     def agg_total_cases_and_deaths(param_df):
         cases_agg = 0
         death_agg = 0
-        param_df = param_df.sort_values(['year', 'month', 'day'])
+        param_df = param_df.sort_values(['Year', 'Month', 'Day'])
         param_df = param_df.reset_index(drop=True)
         for i in param_df.index:
-            cases_agg += param_df.iloc[i]['cases']
-            death_agg += param_df.iloc[i]['deaths']
-            param_df.at[i, 'totalCases'] = cases_agg
-            param_df.at[i, 'totalDeaths'] = death_agg
+            cases_agg += param_df.iloc[i]['NewCases']
+            death_agg += param_df.iloc[i]['NewDeaths']
+            param_df.at[i, 'TotalCases'] = cases_agg
+            param_df.at[i, 'TotalDeaths'] = death_agg
         return param_df
 
     df = df.groupby(['Country']).apply(agg_total_cases_and_deaths).reset_index(drop=True)
+    df.to_csv(__DATA_FILE)
 
     # Log
     date = datetime.today().date()

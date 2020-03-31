@@ -25,9 +25,12 @@ def __validate(insight, space, time):
     assert time == __TIME_TODAY or time == __TIME_ALL, ValueError('Time error')
 
     df = data.get_data()
-
-    countries_list = df.Country.values
     geo_id_list = df.Geo_ID.values
+
+    if time == __TIME_TODAY:
+        df = data.fetch_worldometer_data_for_today()
+    countries_list = df.Country.values
+    
     assert space == 'worldwide' or space.title() in countries_list or space.upper() in geo_id_list, ValueError('Space error')
 
 def __parse(insight, space, time):
@@ -73,13 +76,13 @@ def get_results_today(insight, space, time):
 
     if time == 'today':
         df = data.fetch_worldometer_data_for_today()
-        if space == 'Worldwide':
+        if country == 'Worldwide':
             success = 1
             result = df[df['Country'] == 'Total:'][insight].values[0]
         else:
-            if space in df.Country.values:
+            if country in df.Country.values:
                 success = 1
-                result = df[df['Country'] == space][insight].values[0]
+                result = df[df['Country'] == country][insight].values[0]
             else:
                 success = 0
                 result = -1
@@ -108,25 +111,29 @@ def get_results_graph(insight, space, time, update_id):
 
     if time == 'graph':
         all_data = data.get_data()
-        if space == 'Worldwide':
+        if country == 'Worldwide':
             def aggregate(param_df):
                 '''
                 Sum all insights but keep Date as a column to be used in plotting.
                 '''
-                date = df['Date'].values[0]
+                date = param_df['Date'].values[0]
                 return pd.DataFrame.from_dict({'Date': [date],
-                                                'NewCases': df.NewCases.sum(),
-                                                'NewDeaths': df.NewDeaths.sum()
-                                                'TotalCases': df.TotalCases.sum(),
-                                                'TotalDeaths': df.TotalDeaths.sum()
+                                                'NewCases': param_df.NewCases.sum(),
+                                                'NewDeaths': param_df.NewDeaths.sum(),
+                                                'TotalCases': param_df.TotalCases.sum(),
+                                                'TotalDeaths': param_df.TotalDeaths.sum()
                                                 })
             
             df = all_data.groupby(['Year', 'Month', 'Day']).apply(aggregate).reset_index()
         else:
-            df = all_data[all_data['Country'] == space]
+            if country in all_data.Country.values:
+                df = all_data[all_data['Country'] == country]
+            elif geo_id in all_data.Geo_ID.values:
+                df = all_data[all_data['Geo_ID'] == geo_id]
         
-        path = data.GRAPH_PATH.format(insight + '_' + space, update_id)
-        my_plot = ex.line(df, x='Date', y=insight, title=insight + ' ' + space)
+        df = df.sort_values(['Year', 'Month', 'Day'])
+        path = data.GRAPH_PATH.format(insight + '_' + country, update_id)
+        my_plot = ex.line(df, x='Date', y=insight, title=insight + ' ' + country)
         my_plot.write_image(path)
 
         success = 1

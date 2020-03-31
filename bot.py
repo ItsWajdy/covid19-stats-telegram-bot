@@ -101,6 +101,7 @@ def error(update, context):
     Log errors caused by Updates
     '''
     logger.warning('Update "%s" caused error "%s"', update, context.error)
+    # TODO send a message to user indicating error
 
 def main():
     '''

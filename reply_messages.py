@@ -12,8 +12,6 @@ help_message = """~APPNAME~ can help you get information about the Covid19 pande
 - New cases
 - Total deaths
 - New deaths
-- Total recovered
-- Active cases
 
 Any of the previous insights can be asked about for a certain country or for the entire world.
 Any of the previous insights can be asked about for current day or they can be drawn as a function of time (starting with March 24th).
