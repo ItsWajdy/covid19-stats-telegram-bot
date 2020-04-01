@@ -1,7 +1,9 @@
 start_message = '''*What can this bot do?*
 
 ~APPNAME~ is a great source of old and new stats and graphs relating to the Covid19 pandemic.
-All information provided by ~APPNAME~ is sourced from [https://www.worldometers.info/coronavirus/](https://www.worldometers.info/coronavirus/).
+
+All past data used to create graphs is sourced from the [European-CDC](https://www.ecdc.europa.eu/en) website.
+Whereas data used to return today's numbers is sourced from the [Wordlometer](https://www.worldometers.info/coronavirus/) website.
 
 For a list of avaliable commands and features, issue the commane /help.
 
