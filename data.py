@@ -56,7 +56,7 @@ def __fetch_data():
     with open(__DATA_FILE, 'wb') as f:
         f.write(request.content)
 
-    df = pd.read_csv(__DATA_FILE)
+    df = pd.read_csv(__DATA_FILE, error_bad_lines=False)
 
     # Transform
     df = df.rename(columns={
